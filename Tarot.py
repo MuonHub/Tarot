@@ -6,19 +6,14 @@ Created on Wed Oct 23 10:34:19 2019
 Images from 1910 version by: Arthur Edward Waite. Pamela Coleman Smith was the artist 
 and worked as an artist 'for hire.' Waite was the copyright holder and he died in 1942. 
 
-Instructions: Run the following in python...
-
-from Tarot import *
-my_deck = Tarot()
-
 Notes:
     
-    It helps to have a lightweight image viewer for this version as it will open a new window for each image.
     
 
-@author: Steve
+@author: Steve Alley
 """
 from PIL import Image
+import matplotlib.pyplot as plt
 import random # Library to create random numbers
 import json
 
@@ -29,36 +24,36 @@ class Tarot:
     
     '''
         
-    def __init__(self, deck_name = "Rider Waite", game = 'Celtic Cross'):
+    def __init__(self, deck_name = "Rider-Waite", game = 'Celtic Cross'):
 #        Default deck attributes
         self.deck_name = deck_name
         self.game = game
-        
 #        Initialize a dictionary that will store the cards.
         self.deck = {}
-        
-
 
 #        Create the deck specified by the deck name.
-        if self.deck_name == 'Rider Waite':
+        if self.deck_name == 'Rider-Waite':
             self._rider_waite()
-#        If deck not found notify user and list available decks.
+            if self.deck == {}:
+                print("Can't find the Rider-Waite card set!")
+                return
         else:
             print('Deck not found! Enter a valid deck name.')
             print('Tarot Decks Available:')
-            print('Rider Waite')
+            print('Rider-Waite')
+            return
 
-#        Create a list representing the order that the cards are in. It is the length of the deck chosen.
+#Create a list representing the order that the cards are in. It is the length of the deck chosen.
         self.card_order = list(range(len(self.deck)))
 
-#        Choose what game to play!
+#Choose what game to play.
         if self.game == 'Celtic Cross':
             self._celtic_cross()
         else:
             print('Game not found! Please enter a valid game name.')
-            print('Games available for Class Tarot:')
+            print('Tarot games available are:')
             print('Celtic Cross')
-
+            return
 
     def _rider_waite(self):
         '''
@@ -67,134 +62,146 @@ class Tarot:
         '''
         print(self.deck_name)
         
-#        Show the cover card.
-        self.back = '.\images\Original_1910_Back.jpg'
-        image = Image.open(self.back)
-        image.show()
-        image.close()
-
+#Load JSON file        
 #        The JSON file must already exist. Use the utility .\utils\createRiderWaiteJSONFile.py         
-        file_object = open('./data/riderwaite.json', 'r')
-        json_object = json.load(file_object)
-        
-#        The keys of the dictionary need to be converted to integers
-        for i in range(len(json_object)):
-            key= str(i)
-            self.deck[i] = json_object[key]
-#        All of the 'top_up' attributes must also be an integer for the boolean conversion to work.
-        for i in range(len(self.deck)): self.deck[i]['top_up'] = 1
-                    
+        try:
+            file_object = open('./data/riderwaite.json', 'r')
+            self.deck = json.load(file_object)
+        except:
+            print('Rider-Waite JSON file may be missing or unavailable.')
+            print('<./data/riderwaite.json>')
+            self.deck = {}
+            return
+        else:
+            pass
+             
+        file_object.close()
+             
             
     def _shuffle_cut(self):
-        ''' This little program simulates shuffling the deck and then cutting the deck.
-        In addition the cards up or down orientation is randomized for each card.
+        ''' This program simulates shuffling and cutting the deck.
+        In addition the cards' 'up' or 'down' orientation is randomized.
         '''
 
         random.seed() # Start up the random number generator with the system time
         random.shuffle(self.card_order)
 #        print(self.card_order) # Test to see what the card order is.
         for item in self.card_order:
-            self.deck[item]['top_up'] = random.randint(0, 1)
+            
+            self.deck[str(item)]['top_up'] = random.randint(0, 1)
 
 #        Select a 'cut' card. The cut card can also be called the bottom card
 #        in that it is at the bottome of the top pile and therefor will be at
 #        the bottom of the deck once the cut has been made. 
         cut_card = random.randint(0, len(self.card_order))
-        place = self.card_order.index(cut_card)
-        top_pile = self.card_order[:place + 1]
+        cut = self.card_order.index(cut_card)
+        top_pile = self.card_order[:cut + 1]
 #        print(top_pile)
-        bottom_pile = self.card_order[place + 1:]
+        bottom_pile = self.card_order[cut + 1:]
 #        print(bottom_pile)
         self.card_order =  bottom_pile + top_pile
 #        print(self.card_order)
-#
+
+#Celtic Cross Game
     def _celtic_cross(self):
         '''Classic Rider-Waite Celtic Cross Tarot devination'''
         print(self.game)
-#       Create a list of the card order meaning in celtic cross.
-        celtic_cross = open("./data/celtic_cross.txt", 'r')
-        place_order_meaning = list()
-        for line in celtic_cross:
-            line = line.rstrip('\n')
-            line.strip('\r')
-            place_order_meaning.append(line)
-        celtic_cross.close()
-
+#Load the celtic cross card placeholder meanings...
+        try:
+            file_object = open('./data/celtic_cross.json', 'r')
+            cc_dict = json.load(file_object)
+        except:
+            print('Celtic Cross JSON file missing or unavailable.')
+            print('<./data/celtic_cross.json>')
+            cc_dict = {}
+            return
+        else:
+            pass
+    
 #Step 1) Select the 'Significator' card
-        print('Please choose a topic from the following list which generally best describes the nature of your question.')
         print()
-        print('Meditate on the topic and how it relates to your question, then...')
+        print('Directions:')
+        print('1) Choose the topic which best describes the nature of your inquiry.')
+        print('2) Meditate on how the topic relates to your inquiry.')
+        print('3) Enter the number for the selected topic below.')
         print()
-        print('Enter the number of the topic below.')
+   
         # Ordered by: rank, card_name, suit, symbol, person, description, meaning, reverse meaning
         
 #        Print a list if options to chose for the Significator card and its possible meanings.
-        for card in range(0, 10):
-            print(' ' + str(card) + ': ' + self.deck[card]['symbol'])
-        for card in range(10, 22):
-            print(str(card) + ': ' + self.deck[card]['symbol'])
-#        User input to determine the significator card.
-        significator = int(input('Enter the number:'))
-        #print(self.card_order)
+        for num in range(0, 10):
+            card = str(num)
+            print(' ' + card + ': ' + self.deck[card]['symbol'])
+        for num in range(10, 22):
+            card=str(num)
+            print(card + ': ' + self.deck[card]['symbol'])
 
-
-#Step 2) Pull the Significator card from the full deck before shuffling and cutting the deck three times.
-        self.card_order.remove(significator)
-            
-#Step 3) Shuffle and Cut the deck three times        
-        for times in range(0,3): 
+#User input to select the significator card. 
+#Pull the Significator card from the deck before shuffling.
+        try:
+            significator = int(input('Enter Topic Number:'))
+            self.card_order.remove(significator)
+        except:
+            print('The powers that be did not like that selection, please try again.')
+            return
+        else:
+            pass
+#Shuffle and Cut the deck three times        
+        for times in range(3): 
                 self._shuffle_cut()
-#Step 4) Put the order of the top 9 cards in a list.
-        dealt_cards = self.card_order[:10]
-        
-#Step 5) Place the significator card at the beginning of the chosen cards (top of the pile). 
-        dealt_cards.insert(0, significator)
-#        print(deal_cards) # Test to see if significator was inserted correctly at the beginning.
+                
+#Place the significator card on top of the deck.
+        self.card_order.insert(0, significator)
   
-#Show each of the cards chosen starting with the Significator card in the middle
-        k=0
-        for card in dealt_cards:
+#Create a new figure to draw on. Adjust figsize and color accordingly.
+        fig_cc = plt.figure(figsize=(8,16), facecolor='g')
+#The placement order that the cards are placed on the table.
+        placement = [6, 1, 3, 2, 5, 7, 10, 16, 12, 8, 4]
+#Place the cards on the table...
+        print(('~' * 25)+' Rider-Waite Tarot ~ Celtic Cross '+('~' * 25)+'\n')
+
+        for k in range(0,11):
+           
+            kard = str(self.card_order[k])
+            place = str(placement[k])
             
-        # Ordered by: rank, card_name, suit, symbol, person, description, meaning, reverse meaning
-            
-            image = Image.open(self.deck[card]['face_pic'])
-            
-            if self.deck[card]['top_up'] == False and k != 0: # The significator card is never reversed in meaning i.e. k!=0.
-                image = image.rotate(180)
-            image.show()
-            
-            print('\n' * 10)
-            print('~' * 25)
-            print(self.deck[card]['card_name'])
+#Print out the meanings of the cards...            
+            print(('~' * 4) + '~ The ' + cc_dict[place]['place_name'] + ' Card  '+('~'*4))
+            print(cc_dict[place]['meaning'])
             print()
-            print(place_order_meaning[k])
+            print(self.deck[kard]['card_name'] +' ~ '+ self.deck[kard]['description']+' '+self.deck[kard]['person'])
             print()
-            print('It could also represent a...')
-            print(self.deck[card]['person'])
-            print()
-            print('Card Description...')
-            print(self.deck[card]['description'])
-            print()
-            print('Card Meaning...')
-            if self.deck[card]['top_up'] == False and k != 0:
-                print(self.deck[card]['reverse'])        
+            if self.deck[kard]['top_up'] == False and k != 0:
+                print('Card Meaning ~ '+self.deck[kard]['reverse'])        
             else:
-                print(self.deck[card]['meaning'])
-            
-            k+=1                 
-            
-            cont = input('To continue select Enter:')
-            if cont == "k":
-                image.close()
-                return()
-            image.close()
+                print('Card Meaning ~ '+self.deck[kard]['meaning'])
+            print()
+
         
+#Draw the cards onto the table in the correct placement.
+            axes_k = 'ax' + place
+            axes_k =  fig_cc.add_subplot(4, 4, placement[k])
+            axes_k.axis('off')
+            
+            image = Image.open(self.deck[kard]['face_pic'])            
+        
+            if self.deck[kard]['top_up'] == False and k != 5: 
+                image = image.rotate(180)
+                
+            axes_k.set_title(cc_dict[place]['place_name'])
+
+            plt.imshow(image)
+
+#Cleanup any open files and images being used.            
+        plt.show()        
+        image.close()
+        file_object.close()
         
 #End of Tarot
             
 
-
-#my_deck = Tarot()
+if __name__=='__main__':
+    my_deck = Tarot()
 
 
 
